@@ -1,10 +1,10 @@
 "use client";
 
 import { useState } from "react";
-
+import Image from "next/image";
 import { useRouter } from "next/navigation";
-
 import { useAuthStore } from "@/store/auth.store";
+import styles from "./login.module.scss";
 
 export default function LoginPage() {
   const router = useRouter();
@@ -61,13 +61,15 @@ export default function LoginPage() {
           borderRadius: "20px",
         }}
       >
-        <h1
-          style={{
-            marginBottom: "24px",
-          }}
-        >
-          Spybee Login
-        </h1>
+        <div className={styles.logoContainer}>
+          <Image
+            src="/logo-spybee.png"
+            alt="Spybee"
+            width={250}
+            height={100}
+            priority
+          />
+        </div>
 
         <input
           placeholder="Email"

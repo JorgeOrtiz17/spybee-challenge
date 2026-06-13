@@ -9,12 +9,20 @@ import {
 } from "lucide-react";
 
 import styles from "@/styles/Sidebar.module.scss";
+import Image from "next/image";
 
 export default function Sidebar() {
   return (
     <aside className={styles.sidebar}>
       <div className={styles.logo}>
-        SPYBEE
+        <div className={styles.logo}>
+          <Image
+            src="/logo-spybee.png"
+            alt="Spybee"
+            width={180}
+            height={60}
+          />
+        </div>
       </div>
 
       <nav>

@@ -1,11 +1,20 @@
 import "@/styles/globals.scss";
 import { Toaster } from "react-hot-toast";
 import ThemeProvider from "@/components/providers/ThemeProvider";
+import Image from "next/image";
 
 export const metadata = {
-  title: "Spybee Challenge",
-  description: "Incident Management Dashboard",
+  title: "Spybee | Gestión de Incidencias",
+  description: "Sistema de gestion de incidencias",
+
+  icons: {
+    icon: "/icon.png",
+  },
+
+  applicationName:
+    "Spybee",
 };
+
 
 export default function RootLayout({
   children,
