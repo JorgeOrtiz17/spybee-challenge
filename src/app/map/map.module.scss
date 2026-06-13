@@ -1,0 +1,26 @@
+.container {
+  display: flex;
+  min-height: 100vh;
+}
+
+.content {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.mapWrapper {
+  flex: 1;
+  min-height: 600px;
+}
+
+@media (max-width: 768px) {
+  .content {
+    width: calc(100vw - 80px);
+  }
+
+  .mapWrapper {
+    min-height: 500px;
+  }
+}

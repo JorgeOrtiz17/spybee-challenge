@@ -1,0 +1,219 @@
+.container {
+  display: flex;
+  min-height: 100vh;
+  background: #f8fafc;
+}
+
+.content {
+  flex: 1;
+}
+
+.body {
+  padding: 24px;
+}
+
+/* HEADER */
+
+.header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 24px;
+
+  h1 {
+    margin: 0;
+    font-size: 42px;
+    font-weight: 700;
+    color: #0f172a;
+  }
+
+  span {
+    color: #64748b;
+    font-size: 14px;
+  }
+}
+
+/* FILTROS */
+
+.filters {
+  display: flex;
+  gap: 12px;
+  margin-bottom: 24px;
+  flex-wrap: wrap;
+
+  input,
+  select {
+    padding: 12px 16px;
+    border: 1px solid #e2e8f0;
+    border-radius: 10px;
+    background: white;
+    font-size: 14px;
+    outline: none;
+    transition: all 0.2s ease;
+  }
+
+  input {
+    min-width: 320px;
+  }
+
+  input:focus,
+  select:focus {
+    border-color: #2563eb;
+    box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.12);
+  }
+}
+
+/* BOTÓN CREAR */
+
+.createButton {
+  background: #2563eb;
+  color: white;
+  border: none;
+  padding: 12px 18px;
+  border-radius: 10px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.createButton:hover {
+  background: #1d4ed8;
+  transform: translateY(-2px);
+}
+
+/* GRID DE TARJETAS */
+
+.cards {
+  display: grid;
+  grid-template-columns:
+    repeat(
+      auto-fill,
+      minmax(320px, 1fr)
+    );
+
+  gap: 20px;
+}
+
+/* TARJETA */
+
+.card {
+  background: white;
+  border-radius: 18px;
+  padding: 20px;
+  border: 1px solid #e2e8f0;
+
+  cursor: pointer;
+
+  transition: all 0.25s ease;
+
+  &:hover {
+    transform: translateY(-4px);
+    box-shadow:
+      0 12px 24px
+      rgba(0, 0, 0, 0.08);
+  }
+
+  h3 {
+    margin: 0 0 10px;
+    font-size: 18px;
+    color: #0f172a;
+    line-height: 1.3;
+  }
+
+  p {
+    margin: 0 0 16px;
+    color: #64748b;
+    font-size: 14px;
+  }
+
+  small {
+    color: #94a3b8;
+    font-size: 13px;
+  }
+}
+
+/* BADGES */
+
+.badges {
+  display: flex;
+  gap: 10px;
+  margin-bottom: 14px;
+  flex-wrap: wrap;
+}
+
+.badge {
+  padding: 6px 12px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+/* ESTADO */
+
+.status {
+  background: #dbeafe;
+  color: #1d4ed8;
+}
+
+/* PRIORIDADES */
+
+.priority {
+  background: #fef3c7;
+  color: #d97706;
+}
+
+.high {
+  background: #fee2e2;
+  color: #dc2626;
+}
+
+.medium {
+  background: #fef3c7;
+  color: #d97706;
+}
+
+.low {
+  background: #dcfce7;
+  color: #16a34a;
+}
+
+/* RESPONSIVE TABLET */
+
+@media (max-width: 1024px) {
+  .cards {
+    grid-template-columns:
+      repeat(2, 1fr);
+  }
+}
+
+/* RESPONSIVE MÓVIL */
+
+@media (max-width: 768px) {
+  .body {
+    padding: 16px;
+  }
+
+  .header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 8px;
+
+    h1 {
+      font-size: 32px;
+    }
+  }
+
+  .filters {
+    flex-direction: column;
+
+    input,
+    select {
+      width: 100%;
+      min-width: unset;
+    }
+  }
+
+  .cards {
+    grid-template-columns: 1fr;
+  }
+}
