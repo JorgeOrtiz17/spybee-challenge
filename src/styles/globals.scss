@@ -1,3 +1,29 @@
+/* ── CSS Variables ──────────────────────────────────── */
+:root {
+  --bg:        #f8fafc;
+  --surface:   #ffffff;
+  --surface-2: #f1f5f9;
+  --border:    #e2e8f0;
+  --text-1:    #0f172a;
+  --text-2:    #64748b;
+  --text-3:    #94a3b8;
+  --accent:    #2563eb;
+  --accent-hover: #1d4ed8;
+}
+
+body.dark {
+  --bg:        #0f172a;
+  --surface:   #1e293b;
+  --surface-2: #0f172a;
+  --border:    #334155;
+  --text-1:    #f1f5f9;
+  --text-2:    #94a3b8;
+  --text-3:    #64748b;
+  --accent:    #3b82f6;
+  --accent-hover: #2563eb;
+}
+
+/* ── Reset ──────────────────────────────────────────── */
 * {
   margin: 0;
   padding: 0;
@@ -6,14 +32,11 @@
 
 html,
 body {
-  font-family:
-    Inter,
-    sans-serif;
-
-  background: #f8fafc;
-  color: #0f172a;
-
+  font-family: Inter, sans-serif;
+  background: var(--bg);
+  color: var(--text-1);
   height: 100%;
+  transition: background 0.25s ease, color 0.25s ease;
 }
 
 a {
@@ -27,16 +50,4 @@ button {
 
 ul {
   list-style: none;
-}
-
-
-body {
-  background: #f1f5f9;
-  color: #0f172a;
-  transition: all .3s ease;
-}
-
-body.dark {
-  background: #0f172a;
-  color: #f8fafc;
 }

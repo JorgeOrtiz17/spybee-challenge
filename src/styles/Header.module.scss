@@ -1,29 +1,35 @@
 .header {
-  height: 80px;
-
+  height: 72px;
   display: flex;
   justify-content: space-between;
   align-items: center;
-
   padding: 0 24px;
-
-  background: white;
-
-  border-bottom: 1px solid #e2e8f0;
+  background: var(--surface);
+  border-bottom: 1px solid var(--border);
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  transition: background 0.25s ease, border-color 0.25s ease;
 }
 
 .search {
   display: flex;
   align-items: center;
   gap: 10px;
-
-  background: #f1f5f9;
-
+  background: var(--surface-2);
   padding: 10px 16px;
-
   border-radius: 12px;
+  width: 320px;
+  transition: box-shadow 0.2s, background 0.25s ease;
 
-  width: 350px;
+  &:focus-within {
+    box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.15);
+  }
+}
+
+.searchIcon {
+  color: var(--text-3);
+  flex-shrink: 0;
 }
 
 .search input {
@@ -31,31 +37,74 @@
   background: transparent;
   width: 100%;
   outline: none;
+  font-size: 14px;
+  color: var(--text-1);
+
+  &::placeholder {
+    color: var(--text-3);
+  }
+}
+
+.searchClear {
+  background: none;
+  border: none;
+  color: var(--text-3);
+  font-size: 18px;
+  line-height: 1;
+  padding: 0 2px;
+  cursor: pointer;
+  flex-shrink: 0;
+
+  &:hover {
+    color: var(--text-2);
+  }
 }
 
 .actions {
   display: flex;
   align-items: center;
-  gap: 20px;
+  gap: 12px;
 }
 
-.actions img {
-  width: 40px;
-  height: 40px;
+.iconBtn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  border-radius: 8px;
+  border: none;
+  background: transparent;
+  color: var(--text-2);
+  cursor: pointer;
+  transition: background 0.2s;
+
+  &:hover {
+    background: var(--surface-2);
+  }
+}
+
+.avatar {
   border-radius: 50%;
+  object-fit: cover;
 }
 
-@media (max-width: 768px) {
-  .header {
-    padding: 0 12px;
-  }
+.logoutBtn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 14px;
+  background: #fee2e2;
+  color: #dc2626;
+  border: none;
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.2s;
 
-  .search {
-    width: 200px;
-  }
-
-  .actions {
-    gap: 10px;
+  &:hover {
+    background: #fecaca;
   }
 }
 
@@ -69,6 +118,6 @@
   }
 
   .actions {
-    gap: 10px;
+    gap: 8px;
   }
 }

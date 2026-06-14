@@ -1,55 +1,46 @@
 "use client";
 
 import Link from "next/link";
-import {
-  LayoutDashboard,
-  Map,
-  PlusCircle,
-  Settings,
-} from "lucide-react";
-
-import styles from "@/styles/Sidebar.module.scss";
+import { usePathname } from "next/navigation";
+import { LayoutDashboard, AlertTriangle, Map, PlusCircle, Settings } from "lucide-react";
 import Image from "next/image";
 
+import { useThemeStore } from "@/store/theme.store";
+import styles from "@/styles/Sidebar.module.scss";
+
+const NAV_ITEMS = [
+  { href: "/dashboard", icon: LayoutDashboard, label: "Dashboard" },
+  { href: "/incidents", icon: AlertTriangle, label: "Incidencias" },
+  { href: "/map", icon: Map, label: "Mapa" },
+  { href: "/incidents/create", icon: PlusCircle, label: "Crear" },
+  { href: "#", icon: Settings, label: "Configuración" },
+];
+
 export default function Sidebar() {
+  const pathname = usePathname();
+  const darkMode = useThemeStore((state) => state.darkMode);
+
   return (
     <aside className={styles.sidebar}>
       <div className={styles.logo}>
-        <div className={styles.logo}>
-          <Image
-            src="/logo-spybee.png"
-            alt="Spybee"
-            width={180}
-            height={60}
-          />
-        </div>
+        <Image
+          src={darkMode ? "/logo-spybee-blanco.png" : "/logo-spybee.png"}
+          alt="Spybee"
+          width={180}
+          height={60}
+        />
       </div>
 
       <nav>
-        <Link href="/dashboard">
-          <LayoutDashboard size={20} />
-          <span>Dashboard</span>
-        </Link>
-
-        <Link href="/incidents">
-          <Map size={20} />
-          <span>Incidencias</span>
-        </Link>
-
-        <Link href="/map">
-          <Map size={20} />
-          <span>Mapa</span>
-        </Link>
-
-        <Link href="/create">
-          <PlusCircle size={20} />
-          <span>Crear</span>
-        </Link>
-
-        <Link href="#">
-          <Settings size={20} />
-          <span>Configuración</span>
-        </Link>
+        {NAV_ITEMS.map(({ href, icon: Icon, label }) => {
+          const isActive = href !== "#" && pathname.startsWith(href);
+          return (
+            <Link key={href} href={href} className={isActive ? styles.active : ""}>
+              <Icon size={20} />
+              <span>{label}</span>
+            </Link>
+          );
+        })}
       </nav>
     </aside>
   );

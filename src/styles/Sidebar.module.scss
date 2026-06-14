@@ -1,16 +1,14 @@
 .sidebar {
   width: 260px;
   height: 100vh;
-
-  background: white;
-  border-right: 1px solid #e2e8f0;
-
+  background: var(--surface);
+  border-right: 1px solid var(--border);
   padding: 24px;
-
   display: flex;
   flex-direction: column;
-
-  transition: all .3s ease;
+  transition: width 0.3s ease, background 0.25s ease, border-color 0.25s ease;
+  position: sticky;
+  top: 0;
 }
 
 .logo {
@@ -22,42 +20,45 @@
 .sidebar nav {
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: 4px;
 }
 
 .sidebar nav a {
   display: flex;
   align-items: center;
   gap: 12px;
-
-  padding: 12px;
+  padding: 11px 12px;
   border-radius: 10px;
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--text-2);
+  transition: background 0.15s, color 0.15s;
 
-  transition: .2s;
+  &:hover {
+    background: rgba(37, 99, 235, 0.08);
+    color: var(--accent);
+  }
 }
 
-.sidebar nav a:hover {
-  background: #eff6ff;
+.sidebar nav a.active {
+  background: rgba(37, 99, 235, 0.1);
+  color: var(--accent);
+  font-weight: 600;
 }
-
-/* MOBILE */
 
 @media (max-width: 768px) {
   .sidebar {
-    width: 80px;
-    padding: 16px;
+    width: 72px;
+    padding: 16px 12px;
   }
 
   .logo {
-    width: 100%;
     display: flex;
     justify-content: center;
-    align-items: center;
-    margin-bottom: 40px;
+    margin-bottom: 24px;
 
     img {
-      width: 100%;
-      max-width: 180px;
+      max-width: 44px;
       height: auto;
       object-fit: contain;
     }
@@ -65,20 +66,10 @@
 
   .sidebar nav a {
     justify-content: center;
-    padding: 14px 0;
+    padding: 12px 0;
   }
 
   .sidebar nav a span {
     display: none;
-  }
-}
-
-@media (max-width: 768px) {
-  .logo {
-    margin-bottom: 24px;
-
-    img {
-      max-width: 120px;
-    }
   }
 }
