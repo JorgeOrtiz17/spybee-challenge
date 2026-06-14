@@ -2,123 +2,70 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import mapboxgl from "mapbox-gl";
-
-import MapLegend from "./MapLegend";
-import MapStats from "./MapStats";
-import MapFilters from "./MapFilters";
-import MapSearch from "./MapSearch";
-import { useIncidentStore } from "@/store/incidents.store";
 import { useRouter } from "next/navigation";
 
-import "mapbox-gl/dist/mapbox-gl.css";
+import { useIncidentStore } from "@/store/incidents.store";
+import { getStatusOption, getPriorityOption } from "@/lib/constants";
+import MapStats from "./MapStats";
+import MapSearch from "./MapSearch";
+import MapFilters from "./MapFilters";
+import MapLegend from "./MapLegend";
 
-mapboxgl.accessToken =
-  process.env.NEXT_PUBLIC_MAPBOX_TOKEN || "";
+import "mapbox-gl/dist/mapbox-gl.css";
+import styles from "./Map.module.scss";
+
+mapboxgl.accessToken = process.env.NEXT_PUBLIC_MAPBOX_TOKEN || "";
+
+const PRIORITY_COLORS: Record<string, string> = {
+  high:   "#dc2626",
+  medium: "#d97706",
+  low:    "#2563eb",
+};
+
+/** Stable hash-based offset so markers don't jump on re-render */
+function stableOffset(id: string, seed: number): number {
+  let h = seed;
+  for (const c of id) h = (Math.imul(31, h) + c.charCodeAt(0)) | 0;
+  return ((h & 0xffff) / 0xffff - 0.5) * 0.002;
+}
 
 export default function IncidentMap() {
   const router = useRouter();
+  const mapContainer = useRef<HTMLDivElement>(null);
+  const mapRef = useRef<mapboxgl.Map | null>(null);
+  const markersRef = useRef<mapboxgl.Marker[]>([]);
 
-  const mapContainer =
-    useRef<HTMLDivElement>(null);
+  const [mapLoaded, setMapLoaded] = useState(false);
+  const [priority, setPriority] = useState("all");
+  const [status, setStatus] = useState("all");
+  const [search, setSearch] = useState("");
 
-  const mapRef =
-    useRef<mapboxgl.Map | null>(null);
+  const incidents = useIncidentStore((state) => state.incidents);
 
-  const markersRef =
-    useRef<mapboxgl.Marker[]>([]);
+  const filteredIncidents = useMemo(() => {
+    return incidents.filter((incident: any) => {
+      const priorityMatch = priority === "all" || incident.priority === priority;
+      const statusMatch = status === "all" || incident.status === status;
+      const searchMatch =
+        incident.title?.toLowerCase().includes(search.toLowerCase()) ||
+        incident.project?.name?.toLowerCase().includes(search.toLowerCase());
+      return priorityMatch && statusMatch && searchMatch;
+    });
+  }, [incidents, priority, status, search]);
 
-  const [mapLoaded, setMapLoaded] =
-    useState(false);
+  const high   = filteredIncidents.filter((i: any) => i.priority === "high").length;
+  const medium = filteredIncidents.filter((i: any) => i.priority === "medium").length;
+  const low    = filteredIncidents.filter((i: any) => i.priority === "low").length;
 
-  const [priority, setPriority] =
-    useState("all");
-
-  const [status, setStatus] =
-    useState("all");
-
-  const [search, setSearch] =
-    useState("");
-
-
-
-  const incidents =
-    useIncidentStore(
-      (state) =>
-        state.incidents
-    );
-
-  const filteredIncidents =
-    useMemo(() => {
-      return incidents.filter(
-        (incident: any) => {
-          const priorityMatch =
-            priority === "all" ||
-            incident.priority === priority;
-
-          const statusMatch =
-            status === "all" ||
-            incident.status === status;
-
-          const searchMatch =
-            incident.title
-              .toLowerCase()
-              .includes(
-                search.toLowerCase()
-              ) ||
-            incident.project?.name
-              .toLowerCase()
-              .includes(
-                search.toLowerCase()
-              );
-
-          return (
-            priorityMatch &&
-            statusMatch &&
-            searchMatch
-          );
-        }
-      );
-    }, [priority, status, search]);
-
-  const high =
-    filteredIncidents.filter(
-      (i: any) =>
-        i.priority === "high"
-    ).length;
-
-  const medium =
-    filteredIncidents.filter(
-      (i: any) =>
-        i.priority === "medium"
-    ).length;
-
-  const low =
-    filteredIncidents.filter(
-      (i: any) =>
-        i.priority === "low"
-    ).length;
-
-  // Crear mapa una sola vez
   useEffect(() => {
-    if (
-      !mapContainer.current ||
-      mapRef.current
-    ) {
-      return;
-    }
+    if (!mapContainer.current || mapRef.current) return;
 
-    const map =
-      new mapboxgl.Map({
-        container:
-          mapContainer.current,
-        style:
-          "mapbox://styles/mapbox/light-v11",
-        center: [
-          -74.05772,
-          4.652022,
-        ],
-        zoom: 12,
-      });
+    const map = new mapboxgl.Map({
+      container: mapContainer.current,
+      style: "mapbox://styles/mapbox/light-v11",
+      center: [-74.05772, 4.652022],
+      zoom: 12,
+    });
 
     map.on("load", () => {
       map.resize();
@@ -128,262 +75,116 @@ export default function IncidentMap() {
     mapRef.current = map;
 
     return () => {
-      markersRef.current.forEach(
-        (marker) =>
-          marker.remove()
-      );
-
+      markersRef.current.forEach((m) => m.remove());
       map.remove();
       mapRef.current = null;
     };
   }, []);
 
-
-  // Crear marcadores
   useEffect(() => {
     const map = mapRef.current;
+    if (!map || !mapLoaded) return;
 
-    if (!map) return;
-
-    if (!mapLoaded) return;
-
-    // Limpiar marcadores anteriores
-    markersRef.current.forEach(
-      (marker) => marker.remove()
-    );
-
+    markersRef.current.forEach((m) => m.remove());
     markersRef.current = [];
 
-    const bounds =
-      new mapboxgl.LngLatBounds();
+    const bounds = new mapboxgl.LngLatBounds();
 
-    filteredIncidents.forEach(
-      (incident: any) => {
-        if (
-          !incident.coordinates?.lat ||
-          !incident.coordinates?.lng
-        ) {
-          return;
-        }
+    filteredIncidents.forEach((incident: any) => {
+      if (!incident.coordinates?.lat || !incident.coordinates?.lng) return;
 
-        const markerElement =
-          document.createElement(
-            "div"
-          );
+      const color = PRIORITY_COLORS[incident.priority] ?? "#64748b";
 
-        markerElement.style.width =
-          "14px";
+      const el = document.createElement("div");
+      const defaultShadow = `0 0 0 2px white, 0 0 0 3.5px ${color}`;
+      const hoverShadow   = `0 0 0 2px white, 0 0 0 6px ${color}80`;
 
-        markerElement.style.height =
-          "14px";
-
-        markerElement.style.borderRadius =
-          "50%";
-
-        markerElement.style.cursor =
-          "pointer";
-
-
-        markerElement.style.border =
-          "2px solid white";
-
-        markerElement.style.boxShadow =
-          "0 0 6px rgba(0,0,0,.25)";
-
-        switch (
-        incident.priority
-        ) {
-          case "high":
-            markerElement.style.background =
-              "#ef4444";
-            break;
-
-          case "medium":
-            markerElement.style.background =
-              "#f59e0b";
-            break;
-
-          default:
-            markerElement.style.background =
-              "#3b82f6";
-        }
-
-        // Separación visual mínima
-        const lat =
-          incident.coordinates.lat +
-          (Math.random() - 0.5) *
-          0.0005;
-
-        const lng =
-          incident.coordinates.lng +
-          (Math.random() - 0.5) *
-          0.0005;
-
-        const popup =
-          new mapboxgl.Popup({
-            offset: 25,
-          }).setHTML(`
-    <div style="min-width:220px">
-      <h3 style="
-        font-size:16px;
-        font-weight:600;
-        margin-bottom:10px;
-      ">
-        ${incident.title}
-      </h3>
-
-      <p>
-        <strong>Proyecto:</strong><br/>
-        ${incident.project?.name ?? "Sin proyecto"}
-      </p>
-
-      <p>
-        <strong>Estado:</strong>
-        ${incident.status}
-      </p>
-
-      <p>
-        <strong>Prioridad:</strong>
-        ${incident.priority}
-      </p>
-
-      <button
-        id="view-${incident.id}"
-        style="
-          margin-top:10px;
-          width:100%;
-          padding:8px;
-          border:none;
-          border-radius:8px;
-          background:#2563eb;
-          color:white;
-          cursor:pointer;
-        "
-      >
-        Ver incidencia
-      </button> 
-    </div>
-  `);
-
-        bounds.extend([
-          lng,
-          lat,
-        ]);
-
-        const marker =
-          new mapboxgl.Marker(
-            markerElement
-          )
-            .setLngLat([
-              lng,
-              lat,
-            ])
-            .setPopup(popup)
-            .addTo(map);
-
-        markersRef.current.push(
-          marker
-        );
-
-        popup.on("open", () => {
-          const button =
-            document.getElementById(
-              `view-${incident.id}`
-            );
-
-          if (button) {
-            button.addEventListener(
-              "click",
-              () => {
-                router.push(
-                  `/incidents/${incident.id}`
-                );
-              }
-            );
-          }
-        });
-      }
-    );
-
-    // Auto Zoom
-    if (
-      filteredIncidents.length > 0 &&
-      !bounds.isEmpty()
-    ) {
-      map.fitBounds(bounds, {
-        padding: 100,
-        maxZoom: 16,
-        duration: 1200,
+      Object.assign(el.style, {
+        width: "13px",
+        height: "13px",
+        borderRadius: "50%",
+        background: color,
+        boxShadow: defaultShadow,
+        cursor: "pointer",
+        transition: "box-shadow 0.15s",
       });
-    }
-  }, [
-    filteredIncidents,
-    mapLoaded,
-  ]);
+      el.addEventListener("mouseenter", () => { el.style.boxShadow = hoverShadow; });
+      el.addEventListener("mouseleave", () => { el.style.boxShadow = defaultShadow; });
 
-  if (
-    !process.env
-      .NEXT_PUBLIC_MAPBOX_TOKEN
-  ) {
+      const statusOpt   = getStatusOption(incident.status);
+      const priorityOpt = getPriorityOption(incident.priority);
+
+      const popup = new mapboxgl.Popup({ offset: 20, maxWidth: "260px" }).setHTML(`
+        <div style="font-family:Inter,sans-serif;padding:4px 0">
+          <p style="font-size:14px;font-weight:700;color:#0f172a;margin-bottom:10px;line-height:1.3">
+            ${incident.title}
+          </p>
+          <p style="font-size:12px;color:#64748b;margin-bottom:10px">
+            ${incident.project?.name ?? "Sin proyecto"}
+          </p>
+          <div style="display:flex;gap:6px;margin-bottom:14px;flex-wrap:wrap">
+            <span style="
+              padding:3px 9px;border-radius:999px;font-size:11px;font-weight:600;
+              background:${statusOpt.badgeVariant === "open" ? "#dcfce7" : statusOpt.badgeVariant === "on_pause" ? "#fef3c7" : "#f1f5f9"};
+              color:${statusOpt.badgeVariant === "open" ? "#15803d" : statusOpt.badgeVariant === "on_pause" ? "#b45309" : "#475569"};
+            ">${statusOpt.label}</span>
+            <span style="
+              padding:3px 9px;border-radius:999px;font-size:11px;font-weight:600;
+              background:${priorityOpt.badgeVariant === "high" ? "#fee2e2" : priorityOpt.badgeVariant === "medium" ? "#fef9c3" : "#dbeafe"};
+              color:${priorityOpt.badgeVariant === "high" ? "#dc2626" : priorityOpt.badgeVariant === "medium" ? "#ca8a04" : "#1d4ed8"};
+            ">${priorityOpt.label}</span>
+          </div>
+          <button id="goto-${incident.id}" style="
+            width:100%;padding:9px;border:none;border-radius:9px;
+            background:#2563eb;color:white;font-size:13px;font-weight:600;cursor:pointer;
+          ">Ver detalle →</button>
+        </div>
+      `);
+
+      const lat = incident.coordinates.lat + stableOffset(incident.id, 1);
+      const lng = incident.coordinates.lng + stableOffset(incident.id, 2);
+
+      bounds.extend([lng, lat]);
+
+      const marker = new mapboxgl.Marker(el)
+        .setLngLat([lng, lat])
+        .setPopup(popup)
+        .addTo(map);
+
+      markersRef.current.push(marker);
+
+      popup.on("open", () => {
+        document.getElementById(`goto-${incident.id}`)?.addEventListener("click", () => {
+          router.push(`/incidents/${incident.id}`);
+        });
+      });
+    });
+
+    if (filteredIncidents.length > 0 && !bounds.isEmpty()) {
+      map.fitBounds(bounds, { padding: 100, maxZoom: 15, duration: 1000 });
+    }
+  }, [filteredIncidents, mapLoaded, router]);
+
+  if (!process.env.NEXT_PUBLIC_MAPBOX_TOKEN) {
     return (
-      <div
-        style={{
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "center",
-          height: "500px",
-          borderRadius: "16px",
-          background: "#f8fafc",
-        }}
-      >
-        <h3>
-          Configura
-          NEXT_PUBLIC_MAPBOX_TOKEN
-        </h3>
+      <div className={styles.noToken}>
+        <p>Configura la variable <strong>NEXT_PUBLIC_MAPBOX_TOKEN</strong> para ver el mapa.</p>
       </div>
     );
   }
 
   return (
-    <div
-      style={{
-        position: "relative",
-        width: "100%",
-        height: "100%",
-        padding: "16px",
-      }}
-    >
-      <MapStats
-        high={high}
-        medium={medium}
-        low={low}
-      />
-      <MapSearch
-        value={search}
-        onChange={setSearch}
-      />
-
+    <div className={styles.mapWrapper}>
+      <MapStats high={high} medium={medium} low={low} />
+      <MapSearch value={search} onChange={setSearch} />
       <MapFilters
         priority={priority}
         status={status}
-        setPriority={
-          setPriority
-        }
+        setPriority={setPriority}
         setStatus={setStatus}
       />
-
       <MapLegend />
-
-      <div
-        ref={mapContainer}
-        style={{
-          width: "100%",
-          height: "60vh",
-          minHeight: "500px",
-          borderRadius: "16px",
-          overflow: "hidden",
-        }}
-      />
+      <div ref={mapContainer} className={styles.mapCanvas} />
     </div>
   );
 }
