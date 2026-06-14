@@ -1,18 +1,91 @@
+.page {
+  height: 100vh;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  background: var(--bg);
+  transition: background 0.25s ease;
+}
+
+.form {
+  width: 400px;
+  background: var(--surface);
+  padding: 40px 36px;
+  border-radius: 24px;
+  border: 1px solid var(--border);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.08);
+  transition: background 0.25s ease, border-color 0.25s ease;
+}
+
 .logoContainer {
   display: flex;
   justify-content: center;
   align-items: center;
-  margin-bottom: 32px;
+  margin-bottom: 36px;
+}
 
-  img {
-    width: 100%;
-    max-width: 280px;
-    height: auto;
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-bottom: 16px;
+}
+
+.label {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-2);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.input {
+  width: 100%;
+  padding: 12px 14px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: var(--surface-2);
+  color: var(--text-1);
+  font-size: 14px;
+  outline: none;
+  transition: border-color 0.2s, box-shadow 0.2s, background 0.25s ease;
+
+  &::placeholder { color: var(--text-3); }
+
+  &:focus {
+    border-color: var(--accent);
+    box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.12);
   }
 }
 
-@media (max-width: 768px) {
-  .logoContainer img {
-    max-width: 200px;
+.error {
+  font-size: 13px;
+  color: #dc2626;
+  margin-bottom: 12px;
+}
+
+.submit {
+  width: 100%;
+  padding: 13px;
+  background: var(--accent);
+  color: white;
+  border: none;
+  border-radius: 10px;
+  font-size: 15px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.2s, transform 0.15s;
+  margin-top: 4px;
+
+  &:hover {
+    background: var(--accent-hover);
+    transform: translateY(-1px);
+  }
+}
+
+@media (max-width: 480px) {
+  .form {
+    width: 90vw;
+    padding: 28px 20px;
   }
 }

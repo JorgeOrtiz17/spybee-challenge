@@ -3,127 +3,68 @@
 import { useState } from "react";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
+
 import { useAuthStore } from "@/store/auth.store";
+import { useThemeStore } from "@/store/theme.store";
 import styles from "./login.module.scss";
 
 export default function LoginPage() {
   const router = useRouter();
+  const login = useAuthStore((state) => state.login);
+  const darkMode = useThemeStore((state) => state.darkMode);
 
-  const login = useAuthStore(
-    (state) => state.login
-  );
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [error, setError] = useState("");
 
-  const [email, setEmail] =
-    useState("");
-
-  const [password, setPassword] =
-    useState("");
-
-  const [error, setError] =
-    useState("");
-
-  const handleSubmit = (
-    e: React.FormEvent
-  ) => {
+  const handleSubmit = (e: { preventDefault(): void }) => {
     e.preventDefault();
-
-    const success = login(
-      email,
-      password
-    );
-
+    const success = login(email, password);
     if (!success) {
-      setError(
-        "Credenciales incorrectas"
-      );
+      setError("Credenciales incorrectas");
       return;
     }
-
     router.push("/dashboard");
   };
 
   return (
-    <main
-      style={{
-        height: "100vh",
-        display: "flex",
-        justifyContent:
-          "center",
-        alignItems: "center",
-      }}
-    >
-      <form
-        onSubmit={handleSubmit}
-        style={{
-          width: "400px",
-          background: "white",
-          padding: "32px",
-          borderRadius: "20px",
-        }}
-      >
+    <main className={styles.page}>
+      <form onSubmit={handleSubmit} className={styles.form}>
         <div className={styles.logoContainer}>
           <Image
-            src="/logo-spybee.png"
+            src={darkMode ? "/logo-spybee-blanco.png" : "/logo-spybee.png"}
             alt="Spybee"
-            width={250}
-            height={100}
+            width={220}
+            height={80}
             priority
           />
         </div>
 
-        <input
-          placeholder="Email"
-          value={email}
-          onChange={(e) =>
-            setEmail(
-              e.target.value
-            )
-          }
-          style={{
-            width: "100%",
-            padding: "12px",
-            marginBottom: "12px",
-          }}
-        />
+        <div className={styles.field}>
+          <label className={styles.label}>Email</label>
+          <input
+            className={styles.input}
+            type="email"
+            placeholder="admin@spybee.com"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+          />
+        </div>
 
-        <input
-          type="password"
-          placeholder="Password"
-          value={password}
-          onChange={(e) =>
-            setPassword(
-              e.target.value
-            )
-          }
-          style={{
-            width: "100%",
-            padding: "12px",
-            marginBottom: "12px",
-          }}
-        />
+        <div className={styles.field}>
+          <label className={styles.label}>Contraseña</label>
+          <input
+            className={styles.input}
+            type="password"
+            placeholder="••••••"
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+          />
+        </div>
 
-        {error && (
-          <p
-            style={{
-              color: "red",
-            }}
-          >
-            {error}
-          </p>
-        )}
+        {error && <p className={styles.error}>{error}</p>}
 
-        <button
-          type="submit"
-          style={{
-            width: "100%",
-            padding: "12px",
-            background:
-              "#2563eb",
-            color: "white",
-            border: "none",
-            borderRadius: "10px",
-          }}
-        >
+        <button type="submit" className={styles.submit}>
           Ingresar
         </button>
       </form>

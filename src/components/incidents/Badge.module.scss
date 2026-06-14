@@ -1,0 +1,19 @@
+.badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 4px 10px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+/* Status */
+.open   { background: #dcfce7; color: #15803d; }
+.closed { background: #f1f5f9; color: #475569; }
+.onPause { background: #fef3c7; color: #b45309; }
+
+/* Priority */
+.high   { background: #fee2e2; color: #dc2626; }
+.medium { background: #fef9c3; color: #ca8a04; }
+.low    { background: #dbeafe; color: #1d4ed8; }
