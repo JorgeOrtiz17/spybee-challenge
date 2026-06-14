@@ -30,13 +30,23 @@ body.dark {
   box-sizing: border-box;
 }
 
-html,
+html {
+  height: 100%;
+}
+
 body {
   font-family: Inter, sans-serif;
   background: var(--bg);
   color: var(--text-1);
-  height: 100%;
+  min-height: 100%;
   transition: background 0.25s ease, color 0.25s ease;
+}
+
+/* Reserve space for fixed bottom nav on mobile */
+@media (max-width: 640px) {
+  body {
+    padding-bottom: 64px;
+  }
 }
 
 a {

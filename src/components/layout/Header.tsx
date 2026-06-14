@@ -69,7 +69,7 @@ export default function Header() {
 
         <button onClick={handleLogout} className={styles.logoutBtn}>
           <LogOut size={15} />
-          Salir
+          <span className={styles.logoutText}>Salir</span>
         </button>
       </div>
     </header>

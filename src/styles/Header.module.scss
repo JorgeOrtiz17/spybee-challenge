@@ -1,9 +1,10 @@
 .header {
-  height: 72px;
+  height: 64px;
   display: flex;
   justify-content: space-between;
   align-items: center;
   padding: 0 24px;
+  gap: 12px;
   background: var(--surface);
   border-bottom: 1px solid var(--border);
   position: sticky;
@@ -20,6 +21,7 @@
   padding: 10px 16px;
   border-radius: 12px;
   width: 320px;
+  flex-shrink: 0;
   transition: box-shadow 0.2s, background 0.25s ease;
 
   &:focus-within {
@@ -63,7 +65,8 @@
 .actions {
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: 10px;
+  flex-shrink: 0;
 }
 
 .iconBtn {
@@ -108,16 +111,47 @@
   }
 }
 
-@media (max-width: 768px) {
+/* ── Tablet ─────────────────────────────────────────── */
+@media (max-width: 1024px) and (min-width: 641px) {
   .header {
-    padding: 0 12px;
+    padding: 0 16px;
   }
 
   .search {
-    width: 180px;
+    width: 200px;
+  }
+}
+
+/* ── Mobile ─────────────────────────────────────────── */
+@media (max-width: 640px) {
+  .header {
+    height: 56px;
+    padding: 0 12px;
+    gap: 8px;
+  }
+
+  .search {
+    flex: 1;
+    width: auto;
+    min-width: 0;
+    padding: 8px 12px;
   }
 
   .actions {
-    gap: 8px;
+    gap: 4px;
+  }
+
+  .avatar {
+    width: 30px !important;
+    height: 30px !important;
+  }
+
+  .logoutText {
+    display: none;
+  }
+
+  .logoutBtn {
+    padding: 8px 10px;
+    gap: 0;
   }
 }
