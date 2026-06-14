@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { ArrowLeft } from "lucide-react";
+import { ArrowLeft, Save } from "lucide-react";
 import { useRouter } from "next/navigation";
 
 import Sidebar from "@/components/layout/Sidebar";
@@ -149,6 +149,7 @@ export default function CreateIncidentPage() {
                     Cancelar
                   </Link>
                   <button type="button" onClick={handleSubmit} className={styles.submitBtn}>
+                    <Save size={16} />
                     Guardar incidencia
                   </button>
                 </div>

@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
-import { ArrowLeft } from "lucide-react";
+import { ArrowLeft, Save } from "lucide-react";
 
 import Sidebar from "@/components/layout/Sidebar";
 import Header from "@/components/layout/Header";
@@ -114,9 +114,15 @@ export default function EditIncidentPage() {
                 </div>
               </div>
 
-              <button type="submit" className={styles.submit}>
-                Guardar cambios
-              </button>
+              <div className={styles.actions}>
+                <Link href={`/incidents/${incident.id}`} className={styles.cancelBtn}>
+                  Cancelar
+                </Link>
+                <button type="submit" className={styles.submitBtn}>
+                  <Save size={16} />
+                  Guardar cambios
+                </button>
+              </div>
             </form>
           </div>
         </div>
