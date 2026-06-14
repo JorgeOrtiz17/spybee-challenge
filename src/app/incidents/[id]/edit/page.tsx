@@ -1,237 +1,124 @@
 "use client";
 
 import { useState } from "react";
-
-import {
-  useParams,
-  useRouter,
-} from "next/navigation";
+import { useParams, useRouter } from "next/navigation";
+import Link from "next/link";
+import { ArrowLeft } from "lucide-react";
 
 import Sidebar from "@/components/layout/Sidebar";
 import Header from "@/components/layout/Header";
+import { useIncidentStore } from "@/store/incidents.store";
+import { STATUS_OPTIONS, PRIORITY_OPTIONS } from "@/lib/constants";
 import toast from "react-hot-toast";
 
-import { useIncidentStore } from "@/store/incidents.store";
+import styles from "./edit.module.scss";
 
 export default function EditIncidentPage() {
   const params = useParams();
-
   const router = useRouter();
 
-  const incidents =
-    useIncidentStore(
-      (state) =>
-        state.incidents
-    );
+  const incidents = useIncidentStore((state) => state.incidents);
+  const updateIncident = useIncidentStore((state) => state.updateIncident);
 
-  const updateIncident =
-    useIncidentStore(
-      (state) =>
-        state.updateIncident
-    );
+  const incident = incidents.find((item: any) => item.id === params.id);
 
-  const incident = incidents.find(
-    (item: any) =>
-      item.id === params.id
-  );
+  const [title, setTitle] = useState(incident?.title ?? "");
+  const [description, setDescription] = useState(incident?.description ?? "");
+  const [priority, setPriority] = useState(incident?.priority ?? "medium");
+  const [status, setStatus] = useState(incident?.status ?? "open");
 
   if (!incident) {
     return (
-      <div
-        style={{
-          padding: "40px",
-        }}
-      >
-        Incidencia no encontrada
-      </div>
+      <main className={styles.page}>
+        <Sidebar />
+        <section className={styles.content}>
+          <Header />
+          <div className={styles.notFound}>
+            <p>Incidencia no encontrada</p>
+            <Link href="/incidents" className={styles.back}>
+              <ArrowLeft size={16} />
+              Volver a incidencias
+            </Link>
+          </div>
+        </section>
+      </main>
     );
   }
 
-  const [title, setTitle] =
-    useState(
-      incident.title
-    );
-
-  const [
-    description,
-    setDescription,
-  ] = useState(
-    incident.description
-  );
-
-  const [priority, setPriority] =
-    useState(
-      incident.priority
-    );
-
-  const [status, setStatus] =
-    useState(
-      incident.status
-    );
-
-  const handleSubmit = (
-    e: React.FormEvent
-  ) => {
-    e.preventDefault();
-
-    updateIncident(
-      incident.id,
-      {
-        title,
-        description,
-        priority,
-        status,
-      }
-    );
-
-    toast.success(
-      "Incidencia actualizada"
-    );
-
-    router.push(
-      `/incidents/${incident.id}`
-    );
+  const handleSubmit = () => {
+    updateIncident(incident.id, { title, description, priority, status });
+    toast.success("Incidencia actualizada");
+    router.push("/incidents");
   };
 
   return (
-    <main
-      style={{
-        display: "flex",
-        minHeight: "100vh",
-      }}
-    >
+    <main className={styles.page}>
       <Sidebar />
-
-      <section
-        style={{
-          flex: 1,
-        }}
-      >
+      <section className={styles.content}>
         <Header />
+        <div className={styles.body}>
+          <Link href={`/incidents/${incident.id}`} className={styles.back}>
+            <ArrowLeft size={16} />
+            Volver al detalle
+          </Link>
 
-        <div
-          style={{
-            maxWidth: "900px",
-            margin: "32px auto",
-            padding: "24px",
-            background:
-              "white",
-            borderRadius:
-              "16px",
-          }}
-        >
-          <h1
-            style={{
-              marginBottom:
-                "24px",
-            }}
-          >
-            Editar incidencia
-          </h1>
+          <div className={styles.formCard}>
+            <h1 className={styles.title}>Editar incidencia</h1>
 
-          <form
-            onSubmit={
-              handleSubmit
-            }
-          >
-            <div
-              style={{
-                display:
-                  "flex",
-                flexDirection:
-                  "column",
-                gap: "16px",
-              }}
-            >
-              <input
-                value={title}
-                onChange={(e) =>
-                  setTitle(
-                    e.target
-                      .value
-                  )
-                }
-              />
+            <form onSubmit={(e) => { e.preventDefault(); handleSubmit(); }} className={styles.form}>
+              <div className={styles.field}>
+                <label className={styles.label}>Título</label>
+                <input
+                  className={styles.input}
+                  value={title}
+                  onChange={(e) => setTitle(e.target.value)}
+                  required
+                />
+              </div>
 
-              <textarea
-                value={
-                  description
-                }
-                onChange={(e) =>
-                  setDescription(
-                    e.target
-                      .value
-                  )
-                }
-              />
+              <div className={styles.field}>
+                <label className={styles.label}>Descripción</label>
+                <textarea
+                  className={styles.textarea}
+                  value={description}
+                  onChange={(e) => setDescription(e.target.value)}
+                  rows={5}
+                />
+              </div>
 
-              <select
-                value={
-                  priority
-                }
-                onChange={(e) =>
-                  setPriority(
-                    e.target
-                      .value
-                  )
-                }
-              >
-                <option value="high">
-                  Alta
-                </option>
+              <div className={styles.row}>
+                <div className={styles.field}>
+                  <label className={styles.label}>Prioridad</label>
+                  <select
+                    className={styles.select}
+                    value={priority}
+                    onChange={(e) => setPriority(e.target.value)}
+                  >
+                    {PRIORITY_OPTIONS.map((opt) => (
+                      <option key={opt.value} value={opt.value}>{opt.label}</option>
+                    ))}
+                  </select>
+                </div>
 
-                <option value="medium">
-                  Media
-                </option>
+                <div className={styles.field}>
+                  <label className={styles.label}>Estado</label>
+                  <select
+                    className={styles.select}
+                    value={status}
+                    onChange={(e) => setStatus(e.target.value)}
+                  >
+                    {STATUS_OPTIONS.map((opt) => (
+                      <option key={opt.value} value={opt.value}>{opt.label}</option>
+                    ))}
+                  </select>
+                </div>
+              </div>
 
-                <option value="low">
-                  Baja
-                </option>
-              </select>
-
-              <select
-                value={status}
-                onChange={(e) =>
-                  setStatus(
-                    e.target
-                      .value
-                  )
-                }
-              >
-                <option value="open">
-                  Abierta
-                </option>
-
-                <option value="closed">
-                  Cerrada
-                </option>
-
-                <option value="on_pause">
-                  En pausa
-                </option>
-              </select>
-
-              <button
-                type="submit"
-                style={{
-                  padding:
-                    "12px",
-                  background:
-                    "#2563eb",
-                  color:
-                    "white",
-                  border:
-                    "none",
-                  borderRadius:
-                    "10px",
-                  cursor:
-                    "pointer",
-                }}
-              >
+              <button type="submit" className={styles.submit}>
                 Guardar cambios
               </button>
-            </div>
-          </form>
+            </form>
+          </div>
         </div>
       </section>
     </main>
