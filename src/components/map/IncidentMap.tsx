@@ -17,26 +17,79 @@ import styles from "./Map.module.scss";
 
 mapboxgl.accessToken = process.env.NEXT_PUBLIC_MAPBOX_TOKEN || "";
 
-function createPinIcon(color: string): mapboxgl.StyleImageInterface {
+// Consolidated badge styles for popup HTML (can't use CSS Modules inside Mapbox HTML strings)
+const POPUP_BADGE: Record<string, { bg: string; color: string }> = {
+  open:     { bg: "#dcfce7", color: "#15803d" },
+  on_pause: { bg: "#fef3c7", color: "#b45309" },
+  closed:   { bg: "#f1f5f9", color: "#475569" },
+  high:     { bg: "#fee2e2", color: "#dc2626" },
+  medium:   { bg: "#fef9c3", color: "#ca8a04" },
+  low:      { bg: "#dbeafe", color: "#1d4ed8" },
+};
+
+function buildGeojson(incidents: any[]) {
+  return {
+    type: "FeatureCollection" as const,
+    features: incidents
+      .filter((i) => i.coordinates?.lat && i.coordinates?.lng)
+      .map((i) => ({
+        type: "Feature" as const,
+        geometry: {
+          type: "Point" as const,
+          coordinates: [i.coordinates.lng, i.coordinates.lat] as [number, number],
+        },
+        properties: {
+          id:          i.id,
+          title:       i.title,
+          priority:    i.priority,
+          status:      i.status,
+          projectName: i.project?.name ?? "Sin proyecto",
+        },
+      })),
+  };
+}
+
+function buildPopupHtml(props: Record<string, string>): string {
+  const statusOpt   = getStatusOption(props.status);
+  const priorityOpt = getPriorityOption(props.priority);
+  const sBadge = POPUP_BADGE[statusOpt.badgeVariant]   ?? POPUP_BADGE.closed;
+  const pBadge = POPUP_BADGE[priorityOpt.badgeVariant] ?? POPUP_BADGE.low;
+  const badge  = (b: { bg: string; color: string }, label: string) =>
+    `<span style="padding:3px 9px;border-radius:999px;font-size:11px;font-weight:600;background:${b.bg};color:${b.color}">${label}</span>`;
+
+  return `
+    <div style="font-family:Inter,sans-serif;padding:4px 0">
+      <p style="font-size:14px;font-weight:700;color:#0f172a;margin-bottom:10px;line-height:1.3">${props.title}</p>
+      <p style="font-size:12px;color:#64748b;margin-bottom:10px">${props.projectName}</p>
+      <div style="display:flex;gap:6px;margin-bottom:14px;flex-wrap:wrap">
+        ${badge(sBadge, statusOpt.label)}
+        ${badge(pBadge, priorityOpt.label)}
+      </div>
+      <button data-id="${props.id}" style="width:100%;padding:9px;border:none;border-radius:9px;background:#2563eb;color:white;font-size:13px;font-weight:600;cursor:pointer;">
+        Ver detalle →
+      </button>
+    </div>
+  `;
+}
+
+function createWarningIcon(color: string): mapboxgl.StyleImageInterface {
   const w = 40, h = 36;
   const canvas = document.createElement("canvas");
   canvas.width = w; canvas.height = h;
   const ctx = canvas.getContext("2d")!;
 
-  // Triangle shadow
+  // Shadow
   ctx.beginPath();
-  ctx.moveTo(w / 2, 4);
-  ctx.lineTo(w - 2, h - 2);
-  ctx.lineTo(2, h - 2);
+  ctx.moveTo(w / 2, 4); ctx.lineTo(w - 2, h - 2); ctx.lineTo(2, h - 2);
   ctx.closePath();
   ctx.fillStyle = "rgba(0,0,0,0.18)";
   ctx.fill();
 
-  // Triangle body (rounded corners)
+  // Triangle body with rounded corners
   const r = 4;
-  const top: [number, number]    = [w / 2, 3];
-  const right: [number, number]  = [w - 3, h - 3];
-  const left: [number, number]   = [3, h - 3];
+  const top:   [number, number] = [w / 2, 3];
+  const right: [number, number] = [w - 3, h - 3];
+  const left:  [number, number] = [3,     h - 3];
 
   ctx.beginPath();
   ctx.moveTo((top[0] + right[0]) / 2, (top[1] + right[1]) / 2);
@@ -50,13 +103,13 @@ function createPinIcon(color: string): mapboxgl.StyleImageInterface {
   ctx.lineWidth = 2.5;
   ctx.stroke();
 
-  // Exclamation mark — stem
+  // Exclamation stem
   ctx.beginPath();
   ctx.roundRect(w / 2 - 2.5, 14, 5, 11, 2);
   ctx.fillStyle = "#fff";
   ctx.fill();
 
-  // Exclamation mark — dot
+  // Exclamation dot
   ctx.beginPath();
   ctx.arc(w / 2, 30, 3, 0, Math.PI * 2);
   ctx.fillStyle = "#fff";
@@ -71,38 +124,45 @@ export default function IncidentMap() {
   const routerRef = useRef(router);
   routerRef.current = router;
 
-  const mapContainer = useRef<HTMLDivElement>(null);
-  const mapRef = useRef<mapboxgl.Map | null>(null);
-  const sourceReadyRef = useRef(false);
-  const createModeRef = useRef(false);
+  const mapContainer        = useRef<HTMLDivElement>(null);
+  const mapRef              = useRef<mapboxgl.Map | null>(null);
+  const layersInitializedRef = useRef(false);
+  const createModeRef       = useRef(false);
+  const filteredIncidentsRef = useRef<any[]>([]);
 
-  const [mapLoaded, setMapLoaded] = useState(false);
-  const [priority, setPriority] = useState("all");
-  const [status, setStatus] = useState("all");
-  const [search, setSearch] = useState("");
-  const [createMode, setCreateMode] = useState(false);
-  const [createCoords, setCreateCoords] = useState<{ lat: number; lng: number } | null>(null);
+  const [mapLoaded,     setMapLoaded]     = useState(false);
+  const [priority,      setPriority]      = useState("all");
+  const [status,        setStatus]        = useState("all");
+  const [search,        setSearch]        = useState("");
+  const [createMode,    setCreateMode]    = useState(false);
+  const [createCoords,  setCreateCoords]  = useState<{ lat: number; lng: number } | null>(null);
 
-  const incidents = useIncidentStore((state) => state.incidents);
+  const incidents = useIncidentStore((s) => s.incidents);
 
   const filteredIncidents = useMemo(() => {
-    return incidents.filter((incident: any) => {
-      const priorityMatch = priority === "all" || incident.priority === priority;
-      const statusMatch   = status   === "all" || incident.status   === status;
-      const searchMatch   =
-        incident.title?.toLowerCase().includes(search.toLowerCase()) ||
-        incident.project?.name?.toLowerCase().includes(search.toLowerCase());
+    const q = search.toLowerCase();
+    return incidents.filter((i: any) => {
+      const priorityMatch = priority === "all" || i.priority === priority;
+      const statusMatch   = status   === "all" || i.status   === status;
+      const searchMatch   = i.title?.toLowerCase().includes(q) ||
+                            i.project?.name?.toLowerCase().includes(q);
       return priorityMatch && statusMatch && searchMatch;
     });
   }, [incidents, priority, status, search]);
 
-  const high   = filteredIncidents.filter((i: any) => i.priority === "high").length;
-  const medium = filteredIncidents.filter((i: any) => i.priority === "medium").length;
-  const low    = filteredIncidents.filter((i: any) => i.priority === "low").length;
+  // Keep refs in sync at render time — no extra useEffect needed
+  createModeRef.current        = createMode;
+  filteredIncidentsRef.current = filteredIncidents;
 
-  useEffect(() => { createModeRef.current = createMode; }, [createMode]);
+  const { high, medium, low } = useMemo(() => {
+    const counts = { high: 0, medium: 0, low: 0 };
+    for (const i of filteredIncidents as any[]) {
+      if (i.priority in counts) counts[i.priority as keyof typeof counts]++;
+    }
+    return counts;
+  }, [filteredIncidents]);
 
-  // ── Map init ─────────────────────────────────────────
+  // ── Map init ──────────────────────────────────────────
   useEffect(() => {
     if (!mapContainer.current || mapRef.current) return;
 
@@ -119,44 +179,17 @@ export default function IncidentMap() {
     return () => {
       map.remove();
       mapRef.current = null;
-      sourceReadyRef.current = false;
+      layersInitializedRef.current = false;
     };
   }, []);
 
-  // ── Incidents → map ───────────────────────────────────
+  // ── One-time layers + event handlers ─────────────────
   useEffect(() => {
     const map = mapRef.current;
     if (!map || !mapLoaded) return;
 
-    const geojson = {
-      type: "FeatureCollection" as const,
-      features: filteredIncidents
-        .filter((i: any) => i.coordinates?.lat && i.coordinates?.lng)
-        .map((incident: any) => ({
-          type: "Feature" as const,
-          geometry: {
-            type: "Point" as const,
-            coordinates: [incident.coordinates.lng, incident.coordinates.lat] as [number, number],
-          },
-          properties: {
-            id:          incident.id,
-            title:       incident.title,
-            priority:    incident.priority,
-            status:      incident.status,
-            projectName: incident.project?.name ?? "Sin proyecto",
-          },
-        })),
-    };
+    const initialGeojson = buildGeojson(filteredIncidentsRef.current);
 
-    // Already initialized → just refresh data
-    if (sourceReadyRef.current) {
-      (map.getSource("incidents") as mapboxgl.GeoJSONSource).setData(geojson);
-      return;
-    }
-
-    // ── First-time layer setup ───────────────────────────
-
-    // Load pin icons (synchronous canvas rendering)
     const pinDefs: [string, string][] = [
       ["pin-high",    "#dc2626"],
       ["pin-medium",  "#d97706"],
@@ -164,22 +197,16 @@ export default function IncidentMap() {
       ["pin-default", "#64748b"],
     ];
     pinDefs.forEach(([id, color]) => {
-      if (!map.hasImage(id)) map.addImage(id, createPinIcon(color));
+      if (!map.hasImage(id)) map.addImage(id, createWarningIcon(color));
     });
 
     map.addSource("incidents", {
-      type: "geojson",
-      data: geojson,
-      cluster: true,
-      clusterMaxZoom: 14,
-      clusterRadius: 50,
+      type: "geojson", data: initialGeojson,
+      cluster: true, clusterMaxZoom: 14, clusterRadius: 50,
     });
 
-    // Cluster shadow
     map.addLayer({
-      id: "cluster-shadow",
-      type: "circle",
-      source: "incidents",
+      id: "cluster-shadow", type: "circle", source: "incidents",
       filter: ["has", "point_count"],
       paint: {
         "circle-color":   "#2563eb",
@@ -189,11 +216,8 @@ export default function IncidentMap() {
       },
     });
 
-    // Cluster bubbles
     map.addLayer({
-      id: "clusters",
-      type: "circle",
-      source: "incidents",
+      id: "clusters", type: "circle", source: "incidents",
       filter: ["has", "point_count"],
       paint: {
         "circle-color":        ["step", ["get", "point_count"], "#3b82f6", 5, "#2563eb", 15, "#1d4ed8"],
@@ -203,11 +227,8 @@ export default function IncidentMap() {
       },
     });
 
-    // Cluster count label
     map.addLayer({
-      id: "cluster-count",
-      type: "symbol",
-      source: "incidents",
+      id: "cluster-count", type: "symbol", source: "incidents",
       filter: ["has", "point_count"],
       layout: {
         "text-field": "{point_count_abbreviated}",
@@ -217,18 +238,13 @@ export default function IncidentMap() {
       paint: { "text-color": "#fff" },
     });
 
-    // Individual pin markers
     map.addLayer({
-      id: "unclustered-point",
-      type: "symbol",
-      source: "incidents",
+      id: "unclustered-point", type: "symbol", source: "incidents",
       filter: ["!", ["has", "point_count"]],
       layout: {
         "icon-image": [
           "match", ["get", "priority"],
-          "high",   "pin-high",
-          "medium", "pin-medium",
-          "low",    "pin-low",
+          "high", "pin-high", "medium", "pin-medium", "low", "pin-low",
           "pin-default",
         ],
         "icon-size":             1,
@@ -238,102 +254,75 @@ export default function IncidentMap() {
       },
     });
 
-    // Zoom into cluster on click
     map.on("click", "clusters", (e) => {
       if (createModeRef.current) return;
-      const features = map.queryRenderedFeatures(e.point, { layers: ["clusters"] });
-      if (!features.length) return;
-      const clusterId = features[0].properties?.cluster_id;
-      (map.getSource("incidents") as mapboxgl.GeoJSONSource).getClusterExpansionZoom(
-        clusterId,
-        (err, zoom) => {
-          if (err) return;
-          map.easeTo({
-            center: (features[0].geometry as GeoJSON.Point).coordinates as [number, number],
-            zoom:   zoom ?? 14,
-          });
-        }
-      );
+      const [feature] = map.queryRenderedFeatures(e.point, { layers: ["clusters"] });
+      if (!feature) return;
+      const source = map.getSource("incidents") as mapboxgl.GeoJSONSource;
+      source.getClusterExpansionZoom(feature.properties?.cluster_id, (err, zoom) => {
+        if (err) return;
+        map.easeTo({
+          center: (feature.geometry as GeoJSON.Point).coordinates as [number, number],
+          zoom:   zoom ?? 14,
+        });
+      });
     });
 
-    // Popup on individual point click
     map.on("click", "unclustered-point", (e) => {
       if (createModeRef.current) return;
       const feature = e.features?.[0];
       if (!feature || feature.geometry.type !== "Point") return;
 
-      const props = feature.properties!;
+      const props = feature.properties as Record<string, string>;
       const [lng, lat] = (feature.geometry as GeoJSON.Point).coordinates;
-      const statusOpt   = getStatusOption(props.status);
-      const priorityOpt = getPriorityOption(props.priority);
 
-      const incidentId = props.id;
       const popup = new mapboxgl.Popup({ offset: [0, -20], maxWidth: "260px" })
         .setLngLat([lng, lat])
-        .setHTML(`
-          <div style="font-family:Inter,sans-serif;padding:4px 0">
-            <p style="font-size:14px;font-weight:700;color:#0f172a;margin-bottom:10px;line-height:1.3">
-              ${props.title}
-            </p>
-            <p style="font-size:12px;color:#64748b;margin-bottom:10px">
-              ${props.projectName}
-            </p>
-            <div style="display:flex;gap:6px;margin-bottom:14px;flex-wrap:wrap">
-              <span style="
-                padding:3px 9px;border-radius:999px;font-size:11px;font-weight:600;
-                background:${statusOpt.badgeVariant === "open" ? "#dcfce7" : statusOpt.badgeVariant === "on_pause" ? "#fef3c7" : "#f1f5f9"};
-                color:${statusOpt.badgeVariant === "open" ? "#15803d" : statusOpt.badgeVariant === "on_pause" ? "#b45309" : "#475569"};
-              ">${statusOpt.label}</span>
-              <span style="
-                padding:3px 9px;border-radius:999px;font-size:11px;font-weight:600;
-                background:${priorityOpt.badgeVariant === "high" ? "#fee2e2" : priorityOpt.badgeVariant === "medium" ? "#fef9c3" : "#dbeafe"};
-                color:${priorityOpt.badgeVariant === "high" ? "#dc2626" : priorityOpt.badgeVariant === "medium" ? "#ca8a04" : "#1d4ed8"};
-              ">${priorityOpt.label}</span>
-            </div>
-            <button data-id="${incidentId}" style="
-              width:100%;padding:9px;border:none;border-radius:9px;
-              background:#2563eb;color:white;font-size:13px;font-weight:600;cursor:pointer;
-            ">Ver detalle →</button>
-          </div>
-        `);
+        .setHTML(buildPopupHtml(props));
 
-      // Attach listener BEFORE adding to map so the "open" event is never missed
       popup.on("open", () => {
         popup.getElement()
-          ?.querySelector<HTMLButtonElement>(`[data-id="${incidentId}"]`)
+          ?.querySelector<HTMLButtonElement>(`[data-id="${props.id}"]`)
           ?.addEventListener("click", () => {
-            routerRef.current.push(`/incidents/${incidentId}`);
+            routerRef.current.push(`/incidents/${props.id}`);
           });
       });
 
       popup.addTo(map);
     });
 
-    // Cursor on hover
-    map.on("mouseenter", "clusters",          () => { if (!createModeRef.current) map.getCanvas().style.cursor = "pointer"; });
-    map.on("mouseleave", "clusters",          () => { map.getCanvas().style.cursor = ""; });
-    map.on("mouseenter", "unclustered-point", () => { if (!createModeRef.current) map.getCanvas().style.cursor = "pointer"; });
-    map.on("mouseleave", "unclustered-point", () => { map.getCanvas().style.cursor = ""; });
-
-    // Create mode — click anywhere to place incident
-    map.on("click", (e) => {
-      if (!createModeRef.current) return;
-      setCreateCoords({ lat: e.lngLat.lat, lng: e.lngLat.lng });
-      setCreateMode(false);
-      createModeRef.current = false;
+    ["clusters", "unclustered-point"].forEach((layer) => {
+      map.on("mouseenter", layer, () => { if (!createModeRef.current) map.getCanvas().style.cursor = "pointer"; });
+      map.on("mouseleave", layer, () => { map.getCanvas().style.cursor = ""; });
     });
 
-    sourceReadyRef.current = true;
+    layersInitializedRef.current = true;
 
-    // Fit to initial incidents (once)
     const bounds = new mapboxgl.LngLatBounds();
-    filteredIncidents
-      .filter((i: any) => i.coordinates?.lat && i.coordinates?.lng)
-      .forEach((i: any) => bounds.extend([i.coordinates.lng, i.coordinates.lat]));
-    if (!bounds.isEmpty()) {
-      map.fitBounds(bounds, { padding: 100, maxZoom: 15, duration: 1000 });
-    }
-  }, [filteredIncidents, mapLoaded]);
+    initialGeojson.features.forEach((f) => bounds.extend(f.geometry.coordinates));
+    if (!bounds.isEmpty()) map.fitBounds(bounds, { padding: 100, maxZoom: 15, duration: 1000 });
+  }, [mapLoaded]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // ── Sync data when filters change ────────────────────
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!map || !layersInitializedRef.current) return;
+    (map.getSource("incidents") as mapboxgl.GeoJSONSource).setData(buildGeojson(filteredIncidents));
+  }, [filteredIncidents]);
+
+  // ── Create mode click handler ─────────────────────────
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!map || !mapLoaded || !createMode) return;
+
+    const handleClick = (e: mapboxgl.MapMouseEvent) => {
+      setCreateCoords({ lat: e.lngLat.lat, lng: e.lngLat.lng });
+      setCreateMode(false);
+    };
+
+    map.on("click", handleClick);
+    return () => { map.off("click", handleClick); };
+  }, [mapLoaded, createMode]);
 
   if (!process.env.NEXT_PUBLIC_MAPBOX_TOKEN) {
     return (
