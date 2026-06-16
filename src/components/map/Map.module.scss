@@ -68,12 +68,57 @@
   color: var(--text-1);
 }
 
+/* ── Toolbar (search + filters + create btn in one row) ── */
+.toolbar {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 14px;
+  flex-wrap: wrap;
+}
+
+.mapArea {
+  position: relative;
+}
+
+.createBtn {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  z-index: 10;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 9px 16px;
+  border: none;
+  border-radius: 10px;
+  background: var(--accent);
+  color: #fff;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  white-space: nowrap;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.18);
+  transition: opacity 0.2s, background 0.2s;
+
+  &:hover { opacity: 0.88; }
+}
+
+.createBtnActive {
+  background: #64748b;
+}
+
+.mapCreating {
+  cursor: crosshair !important;
+
+  canvas { cursor: crosshair !important; }
+}
+
 /* ── Filters ─────────────────────────────── */
 .filters {
   display: flex;
   flex-wrap: wrap;
   gap: 10px;
-  margin-bottom: 14px;
 }
 
 .select {
@@ -97,8 +142,9 @@
 /* ── Search ─────────────────────────────── */
 .searchWrapper {
   position: relative;
-  max-width: 380px;
-  margin-bottom: 14px;
+  flex: 1;
+  min-width: 160px;
+  max-width: 340px;
 }
 
 .searchIcon {
@@ -158,6 +204,159 @@
   border: 1px solid var(--border);
   color: var(--text-2);
   font-size: 14px;
+}
+
+/* ── Create Incident Modal ───────────────────────────── */
+.modalOverlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.45);
+  z-index: 1000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+}
+
+.modal {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 18px;
+  width: 100%;
+  max-width: 460px;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.2);
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  overflow: hidden;
+}
+
+.modalHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 20px 24px 16px;
+  border-bottom: 1px solid var(--border);
+}
+
+.modalTitle {
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--text-1);
+  margin: 0;
+}
+
+.modalClose {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 30px;
+  height: 30px;
+  border: none;
+  background: transparent;
+  color: var(--text-3);
+  cursor: pointer;
+  border-radius: 8px;
+  transition: background 0.15s;
+
+  &:hover { background: var(--surface-2); color: var(--text-1); }
+}
+
+.modalBody {
+  padding: 20px 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.modalField {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+.modalFieldRow {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+
+.modalLabel {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-2);
+}
+
+.modalInput,
+.modalSelect,
+.modalTextarea {
+  padding: 9px 12px;
+  border: 1px solid var(--border);
+  border-radius: 9px;
+  background: var(--surface);
+  color: var(--text-1);
+  font-size: 13px;
+  outline: none;
+  transition: border-color 0.2s, box-shadow 0.2s;
+  font-family: inherit;
+
+  &::placeholder { color: var(--text-3); }
+  &:focus {
+    border-color: var(--accent);
+    box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+  }
+}
+
+.modalTextarea {
+  resize: vertical;
+  min-height: 72px;
+}
+
+.modalSelect { appearance: auto; cursor: pointer; }
+
+.coordsHint {
+  font-size: 11px;
+  color: var(--text-3);
+  margin: 0;
+}
+
+.modalActions {
+  display: flex;
+  gap: 10px;
+  justify-content: flex-end;
+  padding: 16px 24px 20px;
+  border-top: 1px solid var(--border);
+}
+
+.cancelBtn {
+  padding: 9px 18px;
+  border: 1px solid var(--border);
+  border-radius: 9px;
+  background: transparent;
+  color: var(--text-2);
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.15s;
+
+  &:hover { background: var(--surface-2); }
+}
+
+.submitBtn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 9px 18px;
+  border: none;
+  border-radius: 9px;
+  background: var(--accent);
+  color: #fff;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: opacity 0.2s;
+
+  &:hover { opacity: 0.88; }
 }
 
 /* ── Mobile ─────────────────────────────────────────── */
